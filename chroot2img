@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# This script is used to create a Debian *.img
+# that can now be dd'ed into an SD for different
+# boards. I have used this for the Intel Edison
+# development kit for example.
+#
+# Author: Omar X. Avelar
+#
+# Example:
+#
+# ./chroot2img <filename.img>
+#
+
+ARCH="i386"
+PACKAGES="gcc,g++,wireless-tools,p7zip,pigz,vim,rsync,git,zip,bash-completion,nfs-common,nfs-kernel-server,ssh,vim-common,vim-gui-common,pciutils,libopencv-dev,libboost-all-dev,python"
+OUTPUT_DIR="/tmp/"
+
+function check_requirements()
+{
+    if [[ $EUID != 0 ]]; then
+        echo "E: Please run this with root priveleges!"
+        exit -129
+    fi
+
+    which debootstrap &> /dev/null
+    if [[ $? != 0 ]]; then
+        echo "E: Please install the \"debootstrap\" package!"
+        exit -127
+    fi
+}
+
+function prepare_chroot()
+{
+    mount --bind /proc $OUTPUT_DIR/proc
+    mount --bind /sys $OUTPUT_DIR/sys
+    mount --bind /dev $OUTPUT_DIR/dev
+}
+
+function cleanup_chroot()
+{
+    umount $OUTPUT_DIR/proc
+    umount $OUTPUT_DIR/sys
+    umount $OUTPUT_DIR/dev
+}
+
+
+check_requirements
+echo "I: About to create an image file based on Debian for $ARCH..."
+RANDOM_TAG="$(date | sha256sum | base64 | head -c 32 | tr '[:upper:]' '[:lower:]')"
+OUTPUT_DIR="/tmp/chroot-$RANDOM_TAG"
+echo "I: Created temporary folder: \"$OUTPUT_DIR\""
+mkdir -p $OUTPUT_DIR
+
+debootstrap --arch $ARCH --include=$PACKAGES testing $OUTPUT_DIR http://http.debian.net/debian
+prepare_chroot
+
+echo "I: Finished setting up the chroot structure in the temporary folder"
+echo "   We will chroot you into it, so you can install applications that will be in the final image!"
+sleep 3
+chroot $OUTPUT_DIR /bin/bash
+cleanup_chroot
+
+exit 0
