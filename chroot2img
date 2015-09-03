@@ -56,7 +56,8 @@ debootstrap --arch $ARCH --include=$PACKAGES testing $OUTPUT_DIR http://http.deb
 prepare_chroot
 
 echo "I: Finished setting up the chroot structure in the temporary folder"
-echo "   We will chroot you into it, so you can install applications that will be in the final image!"
+echo "   We will chroot you into it, so you can install applications or perform"
+echo "   extra configuration steps that will be in the final image!"
 sleep 3
 chroot $OUTPUT_DIR /bin/bash
 cleanup_chroot
